@@ -1,0 +1,47 @@
+---
+- name: Linux instance
+  hosts: localhost
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Update package cache and upgrade packages
+      package:
+        name: "*"
+        state: latest
+      when: ansible_os_family == "Debian" or ansible_os_family == "RedHat"
+
+    - name: Set secure permissions on SSH configuration file
+      file:
+        path: /etc/ssh/ssh_config
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Disable SSH root login
+      lineinfile:
+        path: /etc/ssh/ssh_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+        backup: yes
+
+    - name: Enable SSH key authentication
+      lineinfile:
+        path: /etc/ssh/ssh_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        backup: yes
+
+    - name: Reload SSH service
+      service:
+        name: sssd
+        state: restarted
+      when: ansible_service_mgr == 'systemd'
+
+    - name: Set restrictive permissions on /etc/sudoers file
+      file:
+        path: /etc/sudoers
+        owner: root
+        group: root
+        mode: '0440'
+
